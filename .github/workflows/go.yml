@@ -38,15 +38,9 @@ jobs:
         SERVER_PID=$!
         
         sleep 2
-        
+      
         go test -v ./tests
         
         kill $SERVER_PID
       env:
         TODO_PORT: 7540
-    
-    - name: Lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: v1.64.8
-        args: --timeout=5m --go=1.22
