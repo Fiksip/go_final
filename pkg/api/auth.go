@@ -29,18 +29,18 @@ func signInHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, map[string]string{"error": "invalid JSON"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
 		return
 	}
 
 	expectedPass := os.Getenv("TODO_PASSWORD")
 	if expectedPass == "" {
-		writeJSON(w, map[string]string{"error": "authentication not configured"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "authentication not configured"})
 		return
 	}
 
 	if req.Password != expectedPass {
-		writeJSON(w, map[string]string{"error": "wrong password"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "wrong password"})
 		return
 	}
 
@@ -52,11 +52,11 @@ func signInHandler(w http.ResponseWriter, r *http.Request) {
 
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "failed to create token"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create token"})
 		return
 	}
 
-	writeJSON(w, map[string]string{"token": tokenString})
+	writeJSON(w, http.StatusOK, map[string]string{"token": tokenString})
 }
 
 // auth middleware для проверки аутентификации

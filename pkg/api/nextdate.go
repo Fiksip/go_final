@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -84,7 +85,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 		return date.Format(DateFormat), nil
 
 	case "m":
-		// m дни месяца 1-31, -1, -2 [месяцы 1-12]
+		// m дни месяца 1-31, -1, -2 месяцы 1-12
 		if len(parts) < 2 {
 			return "", fmt.Errorf("invalid m format")
 		}
@@ -183,5 +184,7 @@ func nextDateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(nextDate))
+	if _, err := w.Write([]byte(nextDate)); err != nil {
+		log.Printf("Error writing response in nextDateHandler: %v", err)
+	}
 }

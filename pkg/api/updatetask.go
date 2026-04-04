@@ -12,19 +12,19 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJSON(w, map[string]string{"error": "invalid JSON"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
 		return
 	}
 
 	// Проверка ID
 	if task.ID == "" {
-		writeJSON(w, map[string]string{"error": "task id is required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "task id is required"})
 		return
 	}
 
 	// Проверка заголовка
 	if task.Title == "" {
-		writeJSON(w, map[string]string{"error": "title is required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "title is required"})
 		return
 	}
 
@@ -38,7 +38,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	t, err := time.Parse(DateFormat, task.Date)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": "invalid date format"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid date format"})
 		return
 	}
 
@@ -50,7 +50,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			next, err := NextDate(now, task.Date, task.Repeat)
 			if err != nil {
-				writeJSON(w, map[string]string{"error": err.Error()})
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 				return
 			}
 			task.Date = next
@@ -58,7 +58,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if task.Repeat != "" {
 			if err := validateRepeat(task.Repeat); err != nil {
-				writeJSON(w, map[string]string{"error": err.Error()})
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 				return
 			}
 		}
@@ -66,10 +66,14 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Обновление в БД
 	if err := db.UpdateTask(&task); err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		if err.Error() == "task not found" {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
 	// Успешный ответ пустой JSON
-	writeJSON(w, map[string]string{})
+	writeJSON(w, http.StatusOK, map[string]string{})
 }

@@ -10,8 +10,9 @@ import (
 	"time"
 )
 
-func writeJSON(w http.ResponseWriter, data interface{}) {
+func writeJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)
 }
 
@@ -20,31 +21,31 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJSON(w, map[string]string{"error": "invalid JSON"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
 		return
 	}
 
 	// Проверка заголовка
 	if task.Title == "" {
-		writeJSON(w, map[string]string{"error": "title is required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "title is required"})
 		return
 	}
 
 	// Проверка даты
 	if err := checkDate(&task); err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
 	// Добавление в БД
 	id, err := db.AddTask(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
 	// Возвращаем ID
-	writeJSON(w, map[string]string{"id": fmt.Sprintf("%d", id)})
+	writeJSON(w, http.StatusOK, map[string]string{"id": fmt.Sprintf("%d", id)})
 }
 
 // checkDate проверяет и корректирует дату задачи
@@ -62,7 +63,7 @@ func checkDate(task *db.Task) error {
 		return nil
 	}
 
-	// Парсим явно указанную дату
+	// Парсим указанную дату
 	t, err := time.Parse(DateFormat, task.Date)
 	if err != nil {
 		return fmt.Errorf("invalid date format")
@@ -83,7 +84,7 @@ func checkDate(task *db.Task) error {
 			task.Date = next
 		}
 	} else {
-		// Дата в будущем или сегодня, проверяем правило
+		// Дата в будущем или сегодня
 		if err := validateRepeat(task.Repeat); err != nil {
 			return err
 		}

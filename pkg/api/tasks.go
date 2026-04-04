@@ -12,14 +12,14 @@ type TasksResp struct {
 
 // tasksHandler обрабатывает GET-запрос /api/tasks
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
-	// Получаем задачи из БД (максимум 50)
+
 	tasks, err := db.Tasks(50)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	writeJSON(w, TasksResp{
+	writeJSON(w, http.StatusOK, TasksResp{
 		Tasks: tasks,
 	})
 }
